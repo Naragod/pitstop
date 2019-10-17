@@ -1,60 +1,40 @@
-let sinon = require("sinon");
-let pg = require("pg");
-let pitstop = require("../pitstop.js")._test;
-let pgMock = sinon.mock(pg);
+const sinon = require("sinon");
+const { Pool } = require("pg");
+const config = require("../config.js");
+const ConnectionManager = require("../ConnectionManager.js");
+const pitstop = require("../pitstop.js")._test;
 
-const dbObj = {
-  database: "staging",
-  host: "localhost",
-  password: "password",
-  port: 5432,
-  user: "user"
-};
-
-let handleMock = function(mock, showError, callback) {
-  try {
-    callback();
-    mock.verify();
-  } catch (error) {
-    if (showError) console.error("Error thrown:", error);
-    return false;
-  } finally {
-    mock.restore();
-  }
-  return true;
+const handleStub = function(obj, funcName, callback) {
+  const stub = sinon.stub(obj, funcName);
+  const result = callback(stub);
+  stub.restore();
+  return result;
 };
 
 // ********************************************************************************************
 // test methods
 
-function createDbClientWithDbName(dbName) {
-  pgMock
-    .expects("Client")
-    .withArgs(dbObj)
-    .once();
-  return handleMock(pgMock, false, () => {
-    pitstop.dbClient(dbName, pitstop.DATABASES);
+function createPoolWithDbName(dbName) {
+  const pool = new Pool();
+  const poolStub = sinon.stub(pool);
+  const connection = new ConnectionManager();
+  const mockedPool = handleStub(connection, "createPool", stub => {
+    if (Object.keys(config.databases).includes(dbName)) {
+      stub.withArgs(dbName).returns(poolStub);
+    } else {
+      stub.withArgs(dbName).throws();
+    }
+    return connection.createPool(dbName);
   });
+  return mockedPool == poolStub;
 }
 
-function validateIsJoeAndNoAccessCode() {
-  let reqObj = { params: { accessCode: "someCode", id: 1, name: "Joe" } };
-  return pitstop.validate(reqObj);
-}
-
-function validateIsNotJoeAndAccessCode() {
-  let reqObj = { params: { accessCode: "accessCode", id: 1, name: "mateo" } };
-  return pitstop.validate(reqObj);
-}
-
-function validateIsNotJoeAndNoAccessCode() {
-  let reqObj = { params: { accessCode: "someCode", id: 1, name: "mateo" } };
+function validateAccessCodeAndName(accessCode, name) {
+  const reqObj = { params: { accessCode: accessCode, id: 1, name: name } };
   return pitstop.validate(reqObj);
 }
 
 exports._test = {
-  createDbClientWithDbName: createDbClientWithDbName,
-  validateIsNotJoeAndNoAccessCode: validateIsNotJoeAndNoAccessCode,
-  validateIsNotJoeAndAccessCode: validateIsNotJoeAndAccessCode,
-  validateIsJoeAndNoAccessCode: validateIsJoeAndNoAccessCode
+  createPoolWithDbName: createPoolWithDbName,
+  validateAccessCodeAndName: validateAccessCodeAndName
 };

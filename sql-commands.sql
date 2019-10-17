@@ -19,3 +19,6 @@ join (
 join student on sid = a.esid
 join course on cid = a.ecid
 order by a.score desc;
+
+
+-- There is no user input in these sql queries. No way to perform an sql attack.

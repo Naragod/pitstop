@@ -1,34 +1,5 @@
-var db = require("pg");
-
-var testDatabase = {
-  user: "user",
-  password: "password",
-  host: "localhost",
-  database: "staging",
-  port: 5432
-};
-
-var stagingDatabase = {
-  user: "user",
-  password: "password",
-  host: "localhost",
-  database: "staging",
-  port: 5432
-};
-
-var productionDatabase = {
-  user: "user",
-  password: "password",
-  host: "localhost",
-  database: "staging",
-  port: 5432
-};
-
-const DATABASES = {
-  local: testDatabase,
-  staging: stagingDatabase,
-  production: productionDatabase
-};
+const config = require("./config.js");
+const ConnectionManager = require("./ConnectionManager.js");
 
 // ********************************************************************************************
 // public methods
@@ -41,15 +12,21 @@ const DATABASES = {
  * @param {json} req
  * @param {json} res
  */
-let accessDoor = async function(req, res) {
-  let isValid = validate(req);
+const accessDoor = async function(req, res) {
+  const isValid = validate(req);
+  const connection = new ConnectionManager();
 
   try {
     if (!isValid) throw new Error(`${req.params.accessCode} is not the correct access code.`);
 
-    let client = dbClient(process.env.NODE_ENV, DATABASES);
-    await logToDb(req.params.id, client);
+    const pool = connection.createPool(process.env.NOVE_ENV);
+    await connection.handleError(pool).catch((err, client) => {
+      throw new Error(`Client: ${client}, erred: ${err}`);
+    });
+
+    await connection.query(req.params.id, pool);
     res.send("Succesfully logged to db.");
+    connection.end(pool);
     return true;
   } catch (error) {
     console.error(error);
@@ -61,45 +38,19 @@ let accessDoor = async function(req, res) {
 // private methods
 
 /**
- * Returns new database client
- * @param {string} dbName
- * @param {Object} databases
- */
-let dbClient = function(dbName, databases) {
-  let dbObj = databases[dbName];
-  if (dbObj == undefined) throw new Error("Unrecognized database");
-
-  return new db.Client(dbObj);
-};
-
-/**
- * Validates that user is Joe or has valid access code
+ * Validates that user has the allowed name or has a valid access code
  * @param {json} req
  */
-let validate = function(req) {
+const validate = function(req) {
   if (!req.params.id) return false;
 
-  if (req.params.accessCode != "accessCode" && req.params.name != "Joe") return false;
+  if (req.params.accessCode !== config.accessCode && req.params.name !== config.allowedName) return false;
 
   return true;
 };
 
-/**
- * Logs to database
- * @param {string} data
- * @param {Database Client} dbClient
- */
-let logToDb = async function(data, dbClient) {
-  await dbClient.query(`insert into entry_history values(${data}, ${new Date()})`);
-};
-
-// ********************************************************************************************
-// test cases
-
 exports._test = {
-  validate: validate,
-  dbClient: dbClient,
-  DATABASES: DATABASES
+  validate: validate
 };
 
 module.exports["accessDoor"] = accessDoor;

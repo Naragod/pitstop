@@ -4,7 +4,8 @@
   "description": "",
   "main": "pitstop-prep.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "lint": "node_modules/.bin/eslint . --quiet --ext .js --fix"
   },
   "author": "Mateo Nar",
   "license": "ISC",

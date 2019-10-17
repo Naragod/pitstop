@@ -2,41 +2,35 @@ var assert = require("assert");
 var code = require("./pitstop-tests.js");
 
 describe("AccessDoor", function() {
-  describe("#validateIsNotJoeAndNoAccessCode", function() {
-    it("should return bool true", function() {
-      assert.notEqual(code._test.validateIsNotJoeAndNoAccessCode(), true);
-    });
-  });
-});
-
-describe("AccessDoor", function() {
   describe("#validateIsJoeAndNoAccessCode", function() {
     it("should return bool true", function() {
-      assert.equal(code._test.validateIsJoeAndNoAccessCode(), true);
+      assert.equal(code._test.validateAccessCodeAndName("wrongCode", "Joe"), true);
     });
   });
-});
 
-describe("AccessDoor", function() {
   describe("#validateIsNotJoeAndAccessCode", function() {
     it("should return bool true", function() {
-      assert.equal(code._test.validateIsNotJoeAndAccessCode(), true);
+      assert.equal(code._test.validateAccessCodeAndName("accessCode", "wrongName"), true);
     });
   });
-});
 
-describe("AccessDoor", function() {
-  describe("#createDbClientWithCorrectDbName", function() {
+  describe("#validateIsNotJoeAndNoAccessCode", function() {
     it("should return bool true", function() {
-      assert.equal(code._test.createDbClientWithDbName("local"), true);
+      assert.notEqual(code._test.validateAccessCodeAndName("wrongCode", "wrongName"), true);
     });
   });
 });
 
 describe("AccessDoor", function() {
-  describe("#createDbClientWithInCorrectDbName", function() {
-    it("should throw error and return bool false", function() {
-      assert.equal(code._test.createDbClientWithDbName("incorrectDb"), false);
+  describe("#createPoolWithDbName", function() {
+    it("should return bool true", function() {
+      assert.equal(code._test.createPoolWithDbName("local"), true);
+    });
+  });
+
+  describe("#createPoolWithWrongDbName", function() {
+    it("should throw error", function() {
+      assert.throws(() => code._test.createPoolWithDbName("aaaa"), Error, "Unrecognized database.");
     });
   });
 });
