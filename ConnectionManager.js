@@ -39,7 +39,7 @@ class ConnectionManager {
       throw new Error(`Error thrown: ${err};`);
     });
 
-    await client.query(`insert into entry_history values(${data}, ${new Date()})`);
+    await client.query("insert into entry_history values($1, $2)", [data, new Date()]);
     client.release();
   }
 
